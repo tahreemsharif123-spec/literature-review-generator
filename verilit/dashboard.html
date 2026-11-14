@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>My Reviews | VeriLit</title>
+<meta name="description" content="Your saved literature reviews, verified papers and drafts.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#2f4a7a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <p class="brand"><a href="index.html" style="color:inherit;text-decoration:none">Veri<span>Lit</span></a> My reviews</p>
+    <p class="tag">Every review you save keeps its verified evidence pack and your latest draft. Open one to keep writing or to export references.</p>
+  </div>
+  <div class="top-right"><div class="account" id="account" hidden></div></div>
+</header>
+
+<main class="dash-grid">
+  <section class="step" id="signedOut" hidden>
+    <h2>Sign in to see your reviews</h2>
+    <p class="lede">Create a free account to save verified papers and drafts, then come back to them from any device.</p>
+    <div class="row">
+      <button type="button" id="dashSignIn">Sign in</button>
+      <button type="button" class="ghost" id="dashSignUp">Create free account</button>
+    </div>
+  </section>
+
+  <section class="step" id="notConfigured" hidden>
+    <h2>Accounts are not switched on yet</h2>
+    <p class="lede">The site owner still needs to add the Supabase settings in config.js. The review builder works without an account.</p>
+    <a class="btn-link" href="index.html">Open the review builder</a>
+  </section>
+
+  <section class="step" id="signedIn" hidden>
+    <div class="dash-head">
+      <h2 style="margin:0">Your saved reviews</h2>
+      <a class="btn-link" href="index.html">Start a new review</a>
+    </div>
+    <div class="summary" id="stats"></div>
+    <p class="status" id="listStatus" role="status"></p>
+    <div class="reviews" id="reviews"></div>
+  </section>
+
+  <footer>Reviews are private to your account. Deleting a review removes it for good.</footer>
+</main>
+</div>
+
+<script type="module">
+import { sb, enabled, onUser, openSignIn, mountAccountArea, esc } from "./account.js";
+const $ = s => document.querySelector(s);
+
+if (!enabled) {
+  $("#notConfigured").hidden = false;
+} else {
+  mountAccountArea($("#account"), { onDashboard: true });
+  $("#dashSignIn").addEventListener("click", () => openSignIn());
+  $("#dashSignUp").addEventListener("click", () => openSignIn(null, "signup"));
+  onUser(u => {
+    $("#signedOut").hidden = !!u;
+    $("#signedIn").hidden = !u;
+    if (u) loadList();
+  });
+}
+
+const fmt = d => new Date(d).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+async function loadList() {
+  const st = $("#listStatus");
+  st.className = "status"; st.textContent = "Loading your reviews…";
+  const { data, error } = await sb.from("reviews")
+    .select("id,title,topic,paper_count,draft,updated_at,created_at")
+    .order("updated_at", { ascending: false }).limit(200);
+  if (error) { st.className = "status err"; st.textContent = "Could not load reviews: " + error.message; return; }
+  st.textContent = "";
+  const papers = data.reduce((n, r) => n + (r.paper_count || 0), 0);
+  const drafts = data.filter(r => (r.draft || "").trim()).length;
+  const tile = (n, l) => `<div class="tile"><b>${n}</b><span>${l}</span></div>`;
+  $("#stats").innerHTML = tile(data.length, "saved reviews") + tile(papers, "verified papers") + tile(drafts, "drafts checked");
+  if (!data.length) {
+    $("#reviews").innerHTML = `<p class="empty">No saved reviews yet. Build one, then press "Save to my reviews" in step 5.</p>`;
+    return;
+  }
+  $("#reviews").innerHTML = data.map(r => {
+    const words = (r.draft || "").trim() ? (r.draft.trim().split(/\s+/).length + " words drafted") : "No draft yet";
+    return `<article class="review-card" data-id="${esc(r.id)}">
+      <div>
+        <h3><a href="index.html?review=${encodeURIComponent(r.id)}">${esc(r.title)}</a></h3>
+        <div class="meta">${r.paper_count} verified papers · ${esc(words)} · updated ${esc(fmt(r.updated_at))}</div>
+      </div>
+      <div class="card-actions">
+        <a class="btn-link" href="index.html?review=${encodeURIComponent(r.id)}">Open</a>
+        <button type="button" class="danger" data-del>Delete</button>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+// Two-step delete: first click arms the button, second click deletes.
+document.addEventListener("click", async e => {
+  const btn = e.target.closest("[data-del]");
+  if (!btn) return;
+  const card = btn.closest(".review-card");
+  if (!btn.classList.contains("armed")) {
+    btn.classList.add("armed"); btn.textContent = "Click again to delete";
+    setTimeout(() => { if (btn.isConnected) { btn.classList.remove("armed"); btn.textContent = "Delete"; } }, 4000);
+    return;
+  }
+  btn.disabled = true; btn.textContent = "Deleting…";
+  const { error } = await sb.from("reviews").delete().eq("id", card.dataset.id);
+  if (error) { btn.disabled = false; btn.textContent = "Delete"; $("#listStatus").className = "status err"; $("#listStatus").textContent = "Could not delete: " + error.message; return; }
+  loadList();
+});
+</script>
+</body>
+</html>
