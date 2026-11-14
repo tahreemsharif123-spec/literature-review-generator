@@ -44,3 +44,7 @@ end $$;
 drop trigger if exists reviews_touch on public.reviews;
 create trigger reviews_touch before update on public.reviews
   for each row execute function public.reviews_touch();
+
+-- Only signed-in users reach this table, and RLS limits them to their own rows.
+revoke all on public.reviews from anon;
+grant select, insert, update, delete on public.reviews to authenticated;
