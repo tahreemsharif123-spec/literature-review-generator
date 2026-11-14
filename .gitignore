@@ -1,0 +1,5 @@
+*.zip
+verilit-static/
+verilit/api/config.php
+verilit/api/ratelimit/
+.claude/

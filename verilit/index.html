@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Free Literature Review Generator with Real, Verified Citations | VeriLit</title>
+<link rel="canonical" href="https://literature-review-generator.netlify.app/">
+<meta name="description" content="Free AI literature review generator for MPhil and PhD students. Finds real papers, verifies every DOI with Crossref and blocks fake references. APA 7 and BibTeX export.">
+<meta name="robots" content="index,follow">
+<meta property="og:title" content="Free Literature Review Generator with Real Citations | VeriLit">
+<meta property="og:url" content="https://literature-review-generator.netlify.app/">
+<meta property="og:description" content="Literature reviews built only from papers that exist. Every DOI checked against Crossref.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"VeriLit Literature Review Generator","url":"https://literature-review-generator.netlify.app/","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"applicationCategory":"EducationalApplication","operatingSystem":"Any","description":"Builds literature reviews only from real papers fetched from OpenAlex and Semantic Scholar, with every DOI verified through Crossref.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"audience":{"@type":"EducationalAudience","educationalRole":"MPhil and PhD researchers"}}
+</script>
+<style>
+/* Layout: a calm working desk. Step rail on the left, one wide work column; stacks on phones. */
+:root{
+  --paper:#f6f4ef; --sheet:#ffffff; --sunk:#faf9f6; --ink:#1c2433; --muted:#5d6676; --line:#e4e0d8; --line-strong:#d3cec3;
+  --accent:#2f4a7a; --accent-ink:#ffffff; --accent-soft:#e9eef7; --accent-hover:#253d66;
+  --ok:#2d6a4f; --ok-soft:#e5f1ea; --warn:#8a5a00; --warn-soft:#fbf1dc; --bad:#a3262f; --bad-soft:#f9e6e7;
+  --shadow:0 1px 2px rgba(28,36,51,.05),0 4px 16px rgba(28,36,51,.04);
+  --f-display:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12151b; --sheet:#1a1e26; --sunk:#151920; --ink:#e6e8ec; --muted:#9aa3b2; --line:#2a303b; --line-strong:#3a414e;
+  --accent:#8fb0e6; --accent-ink:#10131a; --accent-soft:#1f2a3f; --accent-hover:#a9c2ee;
+  --ok:#7fcba0; --ok-soft:#18301f; --warn:#e5b866; --warn-soft:#352a14; --bad:#ef8a90; --bad-soft:#3a1c1f;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12151b; --sheet:#1a1e26; --sunk:#151920; --ink:#e6e8ec; --muted:#9aa3b2; --line:#2a303b; --line-strong:#3a414e;
+  --accent:#8fb0e6; --accent-ink:#10131a; --accent-soft:#1f2a3f; --accent-hover:#a9c2ee;
+  --ok:#7fcba0; --ok-soft:#18301f; --warn:#e5b866; --warn-soft:#352a14; --bad:#ef8a90; --bad-soft:#3a1c1f;
+  --shadow:0 1px 2px rgba(0,0,0,.3); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.65 var(--f-body);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 56px}
+a{color:var(--accent);text-underline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-block:40px 24px;border-bottom:1px solid var(--line)}
+.brand{font:600 34px/1.1 var(--f-display);letter-spacing:-.015em;margin:0}
+.brand span{color:var(--accent);font-style:italic}
+.tag{margin:8px 0 0;color:var(--muted);max-width:60ch}
+.sources{font:12px var(--f-mono);color:var(--muted);display:flex;gap:6px;flex-wrap:wrap}
+.sources b{font-weight:500;border:1px solid var(--line);padding:3px 10px;border-radius:999px;background:var(--sheet)}
+.grid{display:grid;grid-template-columns:230px minmax(0,1fr);gap:32px;margin-top:28px}
+@media (max-width:820px){.grid{grid-template-columns:minmax(0,1fr);gap:20px}.rail{position:static!important}}
+.rail{position:sticky;top:20px;align-self:start;display:flex;flex-direction:column;gap:2px;background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:16px 16px 18px;box-shadow:var(--shadow)}
+.rail ol{list-style:none;margin:0;padding:0;counter-reset:s}
+.rail li{counter-increment:s;display:flex;gap:12px;align-items:center;padding:7px 0;color:var(--muted);font-size:14px}
+.rail li::before{content:counter(s);flex:none;width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-strong);display:grid;place-items:center;font:500 12px var(--f-mono);background:var(--sheet)}
+.rail li.on{color:var(--ink);font-weight:600}
+.rail li.on::before{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.rail li.done::before{content:"\2713";background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rail .note{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.55}
+main{display:flex;flex-direction:column;gap:24px;min-width:0}
+section.step{background:var(--sheet);border:1px solid var(--line);border-radius:12px;padding:28px;box-shadow:var(--shadow)}
+@media (max-width:560px){section.step{padding:20px}}
+section.step>h2{font:600 23px/1.25 var(--f-display);margin:0 0 6px;text-wrap:balance}
+.lede{margin:0 0 20px;color:var(--muted);max-width:68ch}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field.grow{flex:1 1 320px}
+label{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+input[type=text],input[type=number],select,textarea{font:inherit;color:var(--ink);background:var(--sunk);border:1px solid var(--line-strong);border-radius:8px;padding:10px 12px;width:100%;transition:border-color .15s,box-shadow .15s,background .15s}
+input[type=text]:hover,input[type=number]:hover,select:hover,textarea:hover{border-color:var(--muted)}
+input[type=text]:focus,input[type=number]:focus,select:focus,textarea:focus{outline:none;background:var(--sheet);border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{font:13.5px/1.6 var(--f-mono);min-height:220px;resize:vertical}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=number]{width:100px}
+button{font:600 14px var(--f-body);border-radius:8px;padding:10px 18px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);transition:background .15s,border-color .15s,color .15s}
+button:hover:not(:disabled){background:var(--accent-hover);border-color:var(--accent-hover)}
+button.ghost{background:var(--sheet);color:var(--accent);border-color:var(--line-strong)}
+button.ghost:hover:not(:disabled){background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.checks{display:flex;flex-wrap:wrap;gap:8px 22px;font-size:14px;margin-top:16px}
+.checks label{text-transform:none;letter-spacing:0;font-weight:400;font-size:14px;color:var(--ink);display:flex;gap:8px;align-items:center;cursor:pointer}
+input[type=checkbox],input[type=radio]{accent-color:var(--accent)}
+.status{font-size:13.5px;color:var(--muted);margin-top:14px;min-height:1.4em}
+.status.err{color:var(--bad)}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 12px;background:var(--sunk);border:1px solid var(--line);border-radius:10px}
+.count{font:13px var(--f-mono);color:var(--muted)}
+.toolbar select{width:auto;padding-block:8px}
+.toolbar>div,.toolbar>span{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.papers{display:flex;flex-direction:column;gap:2px}
+.paper{display:grid;grid-template-columns:28px minmax(0,1fr);gap:4px 12px;padding:16px 14px;border-radius:10px;border:1px solid transparent;transition:background .15s,border-color .15s}
+.paper:hover{background:var(--sunk);border-color:var(--line)}
+.paper:has(input:checked){background:var(--accent-soft);border-color:transparent}
+.paper input{margin-top:5px;width:17px;height:17px}
+.paper h3{font:600 16.5px/1.38 var(--f-display);margin:0}
+.meta{font-size:13px;color:var(--muted)}
+.doi{font:12.5px var(--f-mono);word-break:break-all}
+.abs{font-size:13.5px;color:var(--muted);margin:6px 0 0;max-width:80ch}
+.abs.clip{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.more{font-size:12.5px;background:none;border:0;color:var(--accent);padding:0;font-weight:500}
+.more:hover:not(:disabled){background:none;text-decoration:underline}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font:500 11.5px var(--f-mono);padding:2px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;background:var(--sheet)}
+.chip.ok{background:var(--ok-soft);color:var(--ok);border-color:transparent}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.chip.bad{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.chip.id{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.empty{padding:32px 0;color:var(--muted);text-align:left}
+.mode{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.mode label{display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-weight:500;font-size:14px;color:var(--ink);border:1px solid var(--line-strong);border-radius:10px;padding:12px 14px;flex:1 1 240px;cursor:pointer;transition:border-color .15s,background .15s}
+.mode label:hover{border-color:var(--muted)}
+.mode label:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.mode small{display:block;color:var(--muted);font-weight:400;margin-top:2px}
+.prompt-box{position:relative}
+.pane{border:1px solid var(--line);border-radius:10px;background:var(--sunk);padding:18px 20px;overflow-x:auto}
+.draft{font:16.5px/1.75 var(--f-display);max-width:72ch}
+.draft h1,.draft h2,.draft h3{font-family:var(--f-display);line-height:1.3}
+.cite{font:500 12px var(--f-mono);padding:1px 6px;border-radius:4px;background:var(--ok-soft);color:var(--ok)}
+.cite.bad{background:var(--bad-soft);color:var(--bad)}
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.tile{border:1px solid var(--line);border-radius:10px;padding:14px 16px;background:var(--sunk)}
+.tile b{display:block;font:600 28px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.tile span{font-size:12.5px;color:var(--muted)}
+.tile.ok b{color:var(--ok)} .tile.bad b{color:var(--bad)} .tile.warn b{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+.tablebox{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.tablebox tr:last-child td{border-bottom:0}
+.refs{font-size:14px;padding-left:0;list-style:none}
+.refs li{padding-left:2em;text-indent:-2em;margin-bottom:10px}
+.callout{border:1px solid transparent;border-left:3px solid var(--warn);background:var(--warn-soft);padding:12px 16px;font-size:13.5px;border-radius:0 8px 8px 0;margin-top:14px}
+footer{margin-top:40px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div>
+    <h1 class="brand">Veri<span>Lit</span> Review Builder</h1>
+    <p class="tag">A literature review written only from papers that exist. Every paper comes from a scholarly index, every DOI is checked with Crossref, and every citation in the draft is checked again.</p>
+  </div>
+  <div class="sources" aria-label="Data sources"><b>OpenAlex</b><b>Semantic Scholar</b><b>Crossref</b></div>
+</header>
+
+<div class="grid">
+<nav class="rail" aria-label="Workflow steps">
+  <ol id="rail">
+    <li data-s="1" class="on">Find papers</li>
+    <li data-s="2">Select and verify</li>
+    <li data-s="3">Write from the evidence</li>
+    <li data-s="4">Check every citation</li>
+    <li data-s="5">Export references</li>
+  </ol>
+  <p class="note">The AI never writes a reference. The reference list is built by this tool from verified Crossref records.</p>
+</nav>
+
+<main>
+<!-- STEP 1 -->
+<section class="step" id="s1" aria-labelledby="h1">
+  <h2 id="h1">1. Find real papers</h2>
+  <p class="lede">Describe your research topic. Specific terms work better than broad ones.</p>
+  <form id="searchForm" class="row" novalidate>
+    <div class="field grow"><label for="q">Research topic or keywords</label>
+      <input type="text" id="q" value="digital literacy of university teachers in Pakistan" autocomplete="off" required></div>
+    <div class="field"><label for="y1">From year</label><input type="number" id="y1" value="2015" min="1900" max="2100"></div>
+    <div class="field"><label for="y2">To year</label><input type="number" id="y2" value="2026" min="1900" max="2100"></div>
+    <div class="field"><label for="n">Results</label>
+      <select id="n"><option>25</option><option selected>40</option><option>60</option></select></div>
+    <button type="submit" id="searchBtn">Search papers</button>
+  </form>
+  <div class="checks">
+    <label><input type="checkbox" id="useS2" checked> Also search Semantic Scholar</label>
+    <label><input type="checkbox" id="onlyArticles" checked> Journal articles and reviews only</label>
+    <label><input type="checkbox" id="needAbs" checked> Hide papers without an abstract</label>
+  </div>
+  <p class="status" id="searchStatus" role="status"></p>
+</section>
+
+<!-- STEP 2 -->
+<section class="step" id="s2" aria-labelledby="h2">
+  <h2 id="h2">2. Select papers and verify DOIs</h2>
+  <p class="lede">Read the abstracts and tick the papers that truly fit your review. Retracted papers are removed automatically. Each ticked DOI is checked against Crossref, and the title must match.</p>
+  <div class="toolbar">
+    <span class="count" id="selCount">0 selected</span>
+    <span class="row">
+      <select id="sortBy" aria-label="Sort papers"><option value="rel">Sort by relevance</option><option value="cit">Most cited</option><option value="new">Newest</option></select>
+      <button type="button" class="ghost" id="selTop">Tick top 12</button>
+      <button type="button" id="verifyBtn" disabled>Verify selected DOIs</button>
+    </span>
+  </div>
+  <div class="papers" id="papers"><p class="empty">Search results appear here.</p></div>
+  <p class="status" id="verifyStatus" role="status"></p>
+</section>
+
+<!-- STEP 3 -->
+<section class="step" id="s3" aria-labelledby="h3">
+  <h2 id="h3">3. Write the review from the evidence pack</h2>
+  <p class="lede">Only verified papers go into the evidence pack. Each paper gets a code such as P1, and the AI must cite with those codes only.</p>
+  <div class="row" style="margin-bottom:14px">
+    <div class="field"><label for="style">Review style</label>
+      <select id="style"><option value="thematic" selected>Thematic synthesis</option><option value="chronological">Chronological</option><option value="methodological">By research method</option></select></div>
+    <div class="field"><label for="len">Length</label>
+      <select id="len"><option value="900">About 900 words</option><option value="1500" selected>About 1,500 words</option><option value="2500">About 2,500 words</option></select></div>
+  </div>
+  <div class="mode" id="modeBox">
+    <label><input type="radio" name="mode" value="copy" checked> <span><b>Copy the grounded prompt</b><small>Paste it into Claude, then paste the answer back below. Works on any hosting, no API key.</small></span></label>
+    <label id="autoLabel"><input type="radio" name="mode" value="auto" disabled> <span><b>Write here automatically</b><small id="autoNote">Checking whether the server writer is set up…</small></span></label>
+  </div>
+  <div id="copyMode">
+    <div class="row" style="margin-bottom:8px"><button type="button" id="copyPrompt" disabled>Copy prompt</button><span class="count" id="packInfo">Verify papers first.</span></div>
+    <textarea id="promptOut" readonly aria-label="Grounded prompt" placeholder="The prompt with your evidence pack appears here after verification."></textarea>
+  </div>
+  <div id="autoMode" hidden>
+    <button type="button" id="writeBtn" disabled>Write the review</button>
+  </div>
+  <p class="status" id="writeStatus" role="status"></p>
+</section>
+
+<!-- STEP 4 -->
+<section class="step" id="s4" aria-labelledby="h4">
+  <h2 id="h4">4. Check every citation in the draft</h2>
+  <p class="lede">Paste the AI's draft here, or it fills in automatically. The tool finds every [P#] code, every DOI and every author–year citation, and flags anything that is not in your verified evidence pack.</p>
+  <textarea id="draftIn" aria-label="Draft review" placeholder="Paste the draft review here."></textarea>
+  <div class="row" style="margin-top:10px"><button type="button" id="checkBtn">Check citations</button></div>
+  <div id="checkOut" style="margin-top:16px"></div>
+</section>
+
+<!-- STEP 5 -->
+<section class="step" id="s5" aria-labelledby="h5">
+  <h2 id="h5">5. Export the verified reference list</h2>
+  <p class="lede">Built from Crossref metadata, never from AI text. Only papers cited in the draft are listed. If no draft is checked yet, all verified papers are listed.</p>
+  <div class="row" style="margin-bottom:12px">
+    <button type="button" id="copyRefs">Copy APA 7 list</button>
+    <button type="button" class="ghost" id="copyBib">Copy BibTeX</button>
+    <button type="button" class="ghost" id="copyFinal">Copy final review with references</button>
+  </div>
+  <ul class="refs" id="refs"><li class="empty">No verified papers yet.</li></ul>
+  <p class="status" id="exportStatus" role="status"></p>
+</section>
+
+<footer>
+  Paper data from <a href="https://openalex.org" rel="noopener" target="_blank">OpenAlex</a>, <a href="https://www.semanticscholar.org/product/api" rel="noopener" target="_blank">Semantic Scholar</a> and <a href="https://www.crossref.org" rel="noopener" target="_blank">Crossref</a>. The checks prove a cited paper exists and is in your pack. They cannot prove that a paper supports the exact sentence it is attached to, because only abstracts are used. Read the cited papers before you submit.
+</footer>
+</main>
+</div>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const normDoi = d => String(d||"").trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i,"").replace(/^doi:\s*/i,"").replace(/[.,;:)\]]+$/,"").toLowerCase();
+const words = t => String(t||"").toLowerCase().normalize("NFKD").replace(/<[^>]+>/g," ").replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(w=>w.length>2);
+function titleSim(a,b){const A=new Set(words(a)),B=new Set(words(b));if(!A.size||!B.size)return 0;let i=0;A.forEach(w=>{if(B.has(w))i++});return i/Math.min(A.size,B.size);}
+
+const state = { papers: [], verified: [], draftCited: null, apiReady: false };
+
+/* ---------- Step rail ---------- */
+function setStep(n){document.querySelectorAll("#rail li").forEach(li=>{const s=+li.dataset.s;li.classList.toggle("done",s<n);li.classList.toggle("on",s===n);});}
+
+/* ---------- Step 1: search ---------- */
+function invertAbstract(inv){if(!inv)return "";const arr=[];for(const [w,pos] of Object.entries(inv))for(const p of pos)arr[p]=w;return arr.filter(Boolean).join(" ");}
+
+async function searchOpenAlex(q,y1,y2,n,articles){
+  const filters=["has_doi:true",`from_publication_date:${y1}-01-01`,`to_publication_date:${y2}-12-31`,"is_retracted:false"];
+  if(articles) filters.push("type:article|review");
+  const url="https://api.openalex.org/works?search="+encodeURIComponent(q)+"&filter="+filters.join(",")+"&per_page="+n+
+    "&select=id,doi,display_name,publication_year,authorships,primary_location,cited_by_count,abstract_inverted_index,is_retracted,open_access,type,relevance_score";
+  const r=await fetch(url);if(!r.ok)throw new Error("OpenAlex returned "+r.status);
+  const j=await r.json();
+  return (j.results||[]).map((w,i)=>({
+    doi:normDoi(w.doi), title:w.display_name||"", year:w.publication_year,
+    authors:(w.authorships||[]).map(a=>a.author?.display_name).filter(Boolean),
+    venue:w.primary_location?.source?.display_name||"", cites:w.cited_by_count||0,
+    abstract:invertAbstract(w.abstract_inverted_index), oa:!!w.open_access?.is_oa,
+    retracted:!!w.is_retracted, rank:i, src:["OpenAlex"]
+  }));
+}
+async function searchS2(q,y1,y2,n){
+  const url="https://api.semanticscholar.org/graph/v1/paper/search?query="+encodeURIComponent(q)+"&limit="+Math.min(n,50)+
+    "&year="+y1+"-"+y2+"&fields=title,year,authors,externalIds,abstract,venue,citationCount,isOpenAccess";
+  const r=await fetch(url);if(!r.ok)throw new Error("Semantic Scholar returned "+r.status);
+  const j=await r.json();
+  return (j.data||[]).filter(p=>p.externalIds?.DOI).map((p,i)=>({
+    doi:normDoi(p.externalIds.DOI), title:p.title||"", year:p.year, authors:(p.authors||[]).map(a=>a.name),
+    venue:p.venue||"", cites:p.citationCount||0, abstract:p.abstract||"", oa:!!p.isOpenAccess,
+    retracted:false, rank:i+0.5, src:["Semantic Scholar"]
+  }));
+}
+$("#searchForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const q=$("#q").value.trim(), y1=+$("#y1").value||1900, y2=+$("#y2").value||2100, n=+$("#n").value;
+  const st=$("#searchStatus"); st.className="status";
+  if(q.length<3){st.textContent="Type a topic of at least 3 characters.";st.className="status err";return;}
+  $("#searchBtn").disabled=true; st.textContent="Searching OpenAlex"+($("#useS2").checked?" and Semantic Scholar":"")+"…";
+  const jobs=[searchOpenAlex(q,y1,y2,n,$("#onlyArticles").checked)];
+  if($("#useS2").checked) jobs.push(searchS2(q,y1,y2,n));
+  const res=await Promise.allSettled(jobs);
+  const notes=[]; const map=new Map();
+  res.forEach((r,i)=>{
+    const name=i===0?"OpenAlex":"Semantic Scholar";
+    if(r.status==="rejected"){notes.push(name+" did not answer. Its free service limits requests, so results come from "+(i===0?"Semantic Scholar":"OpenAlex")+" only.");return;}
+    for(const p of r.value){ if(!p.doi) continue;
+      const old=map.get(p.doi);
+      if(old){old.src=[...new Set([...old.src,...p.src])];if(!old.abstract&&p.abstract)old.abstract=p.abstract;old.cites=Math.max(old.cites,p.cites);old.rank=Math.min(old.rank,p.rank);}
+      else map.set(p.doi,p);
+    }
+  });
+  let list=[...map.values()].filter(p=>!p.retracted);
+  if($("#needAbs").checked) list=list.filter(p=>p.abstract && p.abstract.length>80);
+  state.papers=list; state.verified=[]; state.draftCited=null;
+  $("#searchBtn").disabled=false;
+  if(!list.length){st.className="status err";st.textContent=(notes.join(" ")+" No papers found. Try broader keywords or a wider year range.").trim();renderPapers();return;}
+  st.textContent=`Found ${list.length} unique papers with DOIs.`+(notes.length?" "+notes.join(" "):"");
+  renderPapers(); setStep(2); refreshDownstream();
+});
+
+/* ---------- Step 2: select + verify ---------- */
+function sorted(){const by=$("#sortBy").value;const a=[...state.papers];
+  if(by==="cit")a.sort((x,y)=>y.cites-x.cites);else if(by==="new")a.sort((x,y)=>(y.year||0)-(x.year||0));else a.sort((x,y)=>x.rank-y.rank);return a;}
+function chipFor(p){
+  if(!p.check) return "";
+  if(p.check==="busy") return '<span class="chip">Checking Crossref…</span>';
+  if(p.check==="ok") return '<span class="chip ok">DOI verified · title matches</span>';
+  if(p.check==="mismatch") return `<span class="chip warn">DOI exists but title differs</span>`;
+  if(p.check==="notfound") return '<span class="chip bad">DOI not found in Crossref</span>';
+  return '<span class="chip warn">Crossref unreachable, try again</span>';
+}
+function renderPapers(){
+  const box=$("#papers");
+  if(!state.papers.length){box.innerHTML='<p class="empty">Search results appear here.</p>';updateSel();return;}
+  box.innerHTML=sorted().map(p=>{
+    const au=p.authors.length>3?p.authors.slice(0,3).join(", ")+" et al.":p.authors.join(", ");
+    const code=p.code?`<span class="chip id">${esc(p.code)}</span>`:"";
+    return `<div class="paper"><input type="checkbox" data-doi="${esc(p.doi)}" ${p.sel?"checked":""} aria-label="Select: ${esc(p.title)}">
+      <div><h3>${esc(p.title)}</h3>
+      <div class="meta">${esc(au)}${p.year?" · "+esc(p.year):""}${p.venue?" · <i>"+esc(p.venue)+"</i>":""} · cited ${p.cites}</div>
+      <div class="doi"><a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noopener">doi.org/${esc(p.doi)}</a></div>
+      <p class="abs clip">${esc(p.abstract||"No abstract available.")}</p>
+      ${p.abstract&&p.abstract.length>260?'<button type="button" class="more">Show full abstract</button>':""}
+      <div class="chips">${code}${chipFor(p)}${p.oa?'<span class="chip">Open access</span>':""}<span class="chip">${esc(p.src.join(" + "))}</span></div></div></div>`;
+  }).join("");
+  updateSel();
+}
+$("#papers").addEventListener("change",e=>{const d=e.target.dataset.doi;if(!d)return;const p=state.papers.find(x=>x.doi===d);if(p)p.sel=e.target.checked;updateSel();});
+$("#papers").addEventListener("click",e=>{if(!e.target.classList.contains("more"))return;const a=e.target.previousElementSibling;const c=a.classList.toggle("clip");e.target.textContent=c?"Show full abstract":"Show less";});
+$("#sortBy").addEventListener("change",renderPapers);
+$("#selTop").addEventListener("click",()=>{sorted().forEach((p,i)=>p.sel=i<12);renderPapers();});
+function updateSel(){const n=state.papers.filter(p=>p.sel).length;$("#selCount").textContent=n+" selected";$("#verifyBtn").disabled=n===0;}
+
+async function crossrefFetch(doi){
+  for(let attempt=0;attempt<3;attempt++){
+    try{const r=await fetch("https://api.crossref.org/works/"+encodeURIComponent(doi));
+      if(r.status===404||r.ok) return r;}catch(e){}
+    await new Promise(res=>setTimeout(res,800*(attempt+1)));
+  }
+  return null;
+}
+async function crossrefCheck(p){
+  try{
+    const r=await crossrefFetch(p.doi);
+    if(!r){p.check="error";return;}
+    if(r.status===404){p.check="notfound";return;}
+    const m=(await r.json()).message;
+    const crTitle=(m.title&&m.title[0])||"";
+    p.cr={title:crTitle,
+      authors:(m.author||[]).map(a=>({family:a.family||a.name||"",given:a.given||""})),
+      year:(m.issued?.["date-parts"]?.[0]?.[0])||(m.published?.["date-parts"]?.[0]?.[0])||p.year,
+      journal:(m["container-title"]||[])[0]||p.venue||"",volume:m.volume||"",issue:m.issue||"",page:m.page||"",
+      type:m.type||"",publisher:m.publisher||""};
+    const retracted=(m["updated-by"]||[]).some(u=>/retract/i.test(u.type||""));
+    if(retracted){p.check="notfound";p.retracted=true;return;}
+    p.check=titleSim(crTitle,p.title)>=0.6?"ok":"mismatch";
+  }catch(err){p.check="error";}
+}
+$("#verifyBtn").addEventListener("click",async()=>{
+  const sel=state.papers.filter(p=>p.sel); const st=$("#verifyStatus"); st.className="status";
+  $("#verifyBtn").disabled=true; sel.forEach(p=>{p.check="busy";p.code=null;}); renderPapers();
+  let done=0; const queue=[...sel];
+  async function worker(){while(queue.length){const p=queue.shift();await crossrefCheck(p);done++;st.textContent=`Checked ${done} of ${sel.length} DOIs with Crossref…`;renderPapers();}}
+  await Promise.all([worker(),worker(),worker()]);
+  const ok=sel.filter(p=>p.check==="ok");
+  ok.forEach((p,i)=>p.code="P"+(i+1));
+  state.verified=ok; state.draftCited=null;
+  const bad=sel.length-ok.length;
+  st.textContent=`${ok.length} of ${sel.length} papers verified and added to the evidence pack.`+(bad?` ${bad} left out because the DOI failed or the title did not match.`:"");
+  if(!ok.length) st.className="status err";
+  renderPapers(); updateSel(); refreshDownstream(); if(ok.length) setStep(3);
+});
+
+/* ---------- Step 3: grounded prompt / auto write ---------- */
+const STYLE_TEXT={thematic:"Organise the review by themes that emerge across the papers.",chronological:"Organise the review chronologically to show how the field developed.",methodological:"Organise the review by research design and method (for example quantitative, qualitative, mixed methods, reviews)."};
+function evidencePack(){
+  return state.verified.map(p=>{const c=p.cr||{};const au=(c.authors&&c.authors.length?c.authors.map(a=>a.family).filter(Boolean):p.authors);
+    return `[${p.code}] ${c.title||p.title}\nAuthors: ${au.slice(0,8).join(", ")}${au.length>8?" et al.":""}\nYear: ${c.year||p.year}\nVenue: ${c.journal||p.venue}\nDOI: ${p.doi}\nAbstract: ${p.abstract}`;}).join("\n\n");
+}
+function buildPrompt(){
+  const topic=$("#q").value.trim(), style=$("#style").value, len=$("#len").value;
+  return `You are helping an MPhil/PhD researcher write a literature review on: "${topic}".
+
+Write ONLY from the evidence pack below. It contains ${state.verified.length} real papers whose DOIs were verified with Crossref.
+
+Rules:
+1. Cite every claim with the paper codes in square brackets, for example [P3] or [P2, P7]. Use no other citation format.
+2. Never cite, name or invent any paper, author, statistic or DOI that is not in the evidence pack. Do not use your own background knowledge as a source.
+3. Base claims only on what each abstract actually says. If the abstracts are not enough to support a point, write "the available evidence does not establish this" instead of guessing.
+4. ${STYLE_TEXT[style]||STYLE_TEXT.thematic} Compare and contrast findings, note agreements and contradictions, and do not simply summarise papers one by one.
+5. End with a section called "Research gaps" that names specific gaps visible across these papers, each supported by codes.
+6. Do not write a reference list. The tool builds it from verified metadata.
+7. Length: about ${len} words. Use headings. Academic English.
+
+EVIDENCE PACK
+${evidencePack()}`;
+}
+function refreshDownstream(){
+  const n=state.verified.length;
+  $("#promptOut").value=n?buildPrompt():"";
+  $("#copyPrompt").disabled=!n; $("#writeBtn").disabled=!n||!state.apiReady;
+  $("#packInfo").textContent=n?`Evidence pack: ${n} verified papers, P1 to P${n}.`:"Verify papers first.";
+  renderRefs();
+}
+["#style","#len"].forEach(s=>$(s).addEventListener("change",refreshDownstream));
+document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener("change",()=>{const auto=$('input[name=mode][value=auto]').checked;$("#copyMode").hidden=auto;$("#autoMode").hidden=!auto;}));
+
+async function copyText(text,statusEl,okMsg,fallbackEl){
+  try{await navigator.clipboard.writeText(text);statusEl.className="status";statusEl.textContent=okMsg;}
+  catch(e){ if(fallbackEl){fallbackEl.focus();fallbackEl.select();} statusEl.className="status";statusEl.textContent="Copy was blocked by the browser. The text is selected, press Ctrl+C."; }
+}
+$("#copyPrompt").addEventListener("click",()=>{copyText($("#promptOut").value,$("#writeStatus"),"Prompt copied. Paste it into Claude, then paste the answer into step 4.",$("#promptOut"));setStep(4);});
+
+async function probeApi(){
+  try{const r=await fetch("api/write.php?ping=1",{cache:"no-store"});const j=await r.json();
+    if(j&&j.ok&&j.configured){state.apiReady=true;const i=$('input[name=mode][value=auto]');i.disabled=false;$("#autoNote").textContent="Uses Claude on this server. The draft lands in step 4 and is checked automatically.";refreshDownstream();return;}
+    $("#autoNote").textContent="Server writer is installed but has no API key yet.";
+  }catch(e){$("#autoNote").textContent="Not available on this host. Upload api/write.php and add a key to turn it on.";}
+}
+$("#writeBtn").addEventListener("click",async()=>{
+  const st=$("#writeStatus");st.className="status";$("#writeBtn").disabled=true;
+  st.textContent="Writing from the evidence pack. This can take one to three minutes…";
+  try{
+    const body={topic:$("#q").value.trim(),style:$("#style").value,length:+$("#len").value,
+      papers:state.verified.map(p=>({code:p.code,title:(p.cr&&p.cr.title)||p.title,authors:((p.cr&&p.cr.authors.length)?p.cr.authors.map(a=>a.family):p.authors).slice(0,8),year:(p.cr&&p.cr.year)||p.year,venue:(p.cr&&p.cr.journal)||p.venue,doi:p.doi,abstract:p.abstract}))};
+    const r=await fetch("api/write.php",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+    const j=await r.json().catch(()=>({error:"The server sent an unreadable reply."}));
+    if(!r.ok||j.error) throw new Error(j.error||("Server error "+r.status));
+    $("#draftIn").value=j.text; st.textContent=j.truncated?"Draft written but cut short. Choose a shorter length for a complete draft.":"Draft written. Citation check ran below.";
+    runCheck(); $("#s4").scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(e){st.className="status err";st.textContent=e.message+" You can still use the copy-prompt option.";}
+  finally{$("#writeBtn").disabled=false;}
+});
+
+/* ---------- Step 4: citation check ---------- */
+const DOI_RE=/\b10\.\d{4,9}\/[^\s"<>\]\[)(,;]+/gi;
+function runCheck(){
+  const text=$("#draftIn").value; const out=$("#checkOut");
+  if(!text.trim()){out.innerHTML='<p class="status err">Paste a draft first.</p>';return;}
+  const pack=new Map(state.verified.map(p=>[p.code,p]));
+  const used=new Map(), unknown=new Map();
+  // [P#] codes
+  for(const m of text.matchAll(/\[([^\]]{1,80})\]/g)){
+    const codes=m[1].match(/\bP\d+\b/gi); if(!codes) continue;
+    codes.forEach(c=>{c=c.toUpperCase(); if(pack.has(c)) used.set(c,(used.get(c)||0)+1); else unknown.set(c,(unknown.get(c)||0)+1);});
+  }
+  // DOIs written in text
+  const packDois=new Set(state.verified.map(p=>p.doi));
+  const strayDois=[...new Set((text.match(DOI_RE)||[]).map(normDoi))].filter(d=>!packDois.has(d));
+  // Author-year citations, e.g. (Khan et al., 2020) or Khan and Ali (2019)
+  const surnames=new Map();
+  state.verified.forEach(p=>{const fam=(p.cr&&p.cr.authors.length?p.cr.authors.map(a=>a.family):p.authors.map(a=>a.split(" ").pop()));fam.forEach(f=>{if(f)surnames.set(f.toLowerCase()+"|"+((p.cr&&p.cr.year)||p.year),p.code);});});
+  const authorYear=[];
+  for(const m of text.matchAll(/([A-Z][A-Za-z'\-]+)(?:\s+et\s+al\.?|\s+(?:and|&)\s+[A-Z][A-Za-z'\-]+)?,?\s*\(?((?:19|20)\d{2})\)?/g)){
+    const name=m[1],yr=m[2];
+    if(/^(In|The|This|These|Since|From|By|Between|During|After|Before|Until|And|Of|To|At|For|As|On|Year|Years|Table|Figure|Section|Policy|Vision)$/.test(name)) continue;
+    const near=text.slice(Math.max(0,m.index-2),m.index+m[0].length+2);
+    if(!/et al|\(|\)|&| and /.test(near)) continue;
+    const hit=surnames.get(name.toLowerCase()+"|"+yr);
+    authorYear.push({txt:m[0].trim(),hit});
+  }
+  const strayAY=[...new Map(authorYear.filter(a=>!a.hit).map(a=>[a.txt,a])).values()];
+  const uncited=state.verified.filter(p=>!used.has(p.code));
+  // Paragraphs with no citation
+  const paras=text.split(/\n\s*\n/).map(s=>s.trim()).filter(s=>s.length>220 && !/^#/.test(s));
+  const bare=paras.filter(s=>!/\[[^\]]*P\d+/i.test(s)).length;
+  state.draftCited=new Set(used.keys());
+  const problems=unknown.size+strayDois.length+strayAY.length;
+  const tile=(n,l,c)=>`<div class="tile ${c}"><b>${n}</b><span>${l}</span></div>`;
+  let html=`<div class="summary">${tile(used.size,"pack papers cited","ok")}${tile(problems,"citations not in pack",problems?"bad":"ok")}${tile(uncited.length,"pack papers never cited",uncited.length?"warn":"ok")}${tile(bare,"long paragraphs with no citation",bare?"warn":"ok")}</div>`;
+  if(!state.verified.length) html+='<p class="callout">No evidence pack yet. Search, select and verify papers first, otherwise every citation will show as outside the pack.</p>';
+  const rows=[];
+  unknown.forEach((n,c)=>rows.push(`<tr><td><span class="cite bad">[${esc(c)}]</span></td><td>Code is not in the evidence pack</td><td>Remove it, or cite a real pack paper.</td></tr>`));
+  strayDois.forEach(d=>rows.push(`<tr><td class="doi">${esc(d)}</td><td>DOI written in the text, not in the pack</td><td>Treat as unverified. Delete it, or add the paper through step 1 and verify it.</td></tr>`));
+  strayAY.forEach(a=>rows.push(`<tr><td>${esc(a.txt)}</td><td>Author–year citation that matches no pack paper</td><td>Likely invented. Replace with a [P#] code or delete.</td></tr>`));
+  if(rows.length) html+=`<div class="tablebox"><table><thead><tr><th>Found</th><th>Problem</th><th>What to do</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
+  else if(state.verified.length) html+='<p class="status" style="color:var(--ok)">Every citation in the draft points to a verified paper in your evidence pack.</p>';
+  if(uncited.length) html+=`<p class="status">Not cited: ${uncited.map(p=>esc(p.code)).join(", ")}. That can be fine. They are left out of the reference list.</p>`;
+  // Highlighted preview
+  const preview=esc(text).replace(/\[([^\]]{1,80})\]/g,(all,inner)=>{if(!/\bP\d+\b/i.test(inner))return all;const ok=(inner.match(/\bP\d+\b/gi)||[]).every(c=>pack.has(c.toUpperCase()));return `<span class="cite${ok?"":" bad"}">${all}</span>`;})
+    .replace(/^### (.*)$/gm,"<h3>$1</h3>").replace(/^## (.*)$/gm,"<h2>$1</h2>").replace(/^# (.*)$/gm,"<h1>$1</h1>").replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n\n/g,"<br><br>");
+  html+=`<h3 style="font:600 17px var(--f-display);margin:18px 0 8px">Draft with citations marked</h3><div class="pane draft">${preview}</div>`;
+  out.innerHTML=html; setStep(5); renderRefs();
+}
+$("#checkBtn").addEventListener("click",runCheck);
+
+/* ---------- Step 5: references ---------- */
+function initials(g){return String(g||"").split(/[\s\-]+/).filter(Boolean).map(x=>x[0].toUpperCase()+".").join(" ");}
+function apaAuthors(p){
+  const list=(p.cr&&p.cr.authors.length)?p.cr.authors.map(a=>a.given?`${a.family}, ${initials(a.given)}`:a.family):p.authors.map(n=>{const parts=n.split(" ");const f=parts.pop();return parts.length?`${f}, ${initials(parts.join(" "))}`:f;});
+  if(!list.length) return "";
+  if(list.length===1) return list[0];
+  if(list.length<=20) return list.slice(0,-1).join(", ")+", & "+list[list.length-1];
+  return list.slice(0,19).join(", ")+", . . . "+list[list.length-1];
+}
+function apa(p){
+  const c=p.cr||{}; const t=c.title||p.title; const j=c.journal||p.venue;
+  let s=`${apaAuthors(p)} (${c.year||p.year||"n.d."}). ${t.replace(/\.$/,"")}.`;
+  if(j){ s+=` ${j}`; if(c.volume) s+=`, ${c.volume}`; if(c.issue) s+=`(${c.issue})`; if(c.page) s+=`, ${c.page}`; s+="."; }
+  return s+` https://doi.org/${p.doi}`;
+}
+function citedList(){const l=state.verified.filter(p=>!state.draftCited||state.draftCited.has(p.code));
+  return l.sort((a,b)=>apaAuthors(a).localeCompare(apaAuthors(b)));}
+function renderRefs(){
+  const l=citedList(); const ul=$("#refs");
+  if(!l.length){ul.innerHTML='<li class="empty">No verified papers yet.</li>';return;}
+  ul.innerHTML=l.map(p=>{const c=p.cr||{};const t=c.title||p.title;const j=c.journal||p.venue;
+    let s=`${esc(apaAuthors(p))} (${esc(c.year||p.year||"n.d.")}). ${esc(t.replace(/\.$/,""))}.`;
+    if(j){s+=` <i>${esc(j)}</i>`;if(c.volume)s+=`, <i>${esc(c.volume)}</i>`;if(c.issue)s+=`(${esc(c.issue)})`;if(c.page)s+=`, ${esc(c.page)}`;s+=".";}
+    s+=` <a href="https://doi.org/${esc(p.doi)}" target="_blank" rel="noopener" class="doi">https://doi.org/${esc(p.doi)}</a> <span class="chip id">${esc(p.code)}</span>`;
+    return `<li>${s}</li>`;}).join("");
+}
+function bibtex(p){const c=p.cr||{};const fam=((c.authors&&c.authors[0]&&c.authors[0].family)||(p.authors[0]||"anon").split(" ").pop()).replace(/[^A-Za-z]/g,"");
+  const key=fam+(c.year||p.year||"")+p.code;const au=(c.authors&&c.authors.length?c.authors.map(a=>a.given?`${a.family}, ${a.given}`:a.family):p.authors).join(" and ");
+  const f=[["author",au],["title",`{${c.title||p.title}}`],["journal",c.journal||p.venue],["year",c.year||p.year],["volume",c.volume],["number",c.issue],["pages",c.page],["doi",p.doi]].filter(x=>x[1]);
+  return `@article{${key},\n`+f.map(([k,v])=>`  ${k} = {${String(v).replace(/^\{|\}$/g,"")}}`).join(",\n")+"\n}";}
+$("#copyRefs").addEventListener("click",()=>{const l=citedList();if(!l.length)return;copyText(l.map(p=>apa(p)).join("\n\n"),$("#exportStatus"),`Copied ${l.length} references in APA 7 style.`);});
+$("#copyBib").addEventListener("click",()=>{const l=citedList();if(!l.length)return;copyText(l.map(bibtex).join("\n\n"),$("#exportStatus"),`Copied ${l.length} BibTeX entries.`);});
+$("#copyFinal").addEventListener("click",()=>{
+  const draft=$("#draftIn").value.trim(); const l=citedList(); if(!draft||!l.length){$("#exportStatus").className="status err";$("#exportStatus").textContent="Check a draft in step 4 first.";return;}
+  const map=new Map(l.map(p=>{const c=p.cr||{};const fam=(c.authors&&c.authors.length?c.authors.map(a=>a.family):p.authors.map(n=>n.split(" ").pop()));
+    const who=fam.length>2?fam[0]+" et al.":fam.length===2?fam[0]+" & "+fam[1]:(fam[0]||"Anon.");return [p.code,`${who}, ${c.year||p.year}`];}));
+  const body=draft.replace(/\[([^\]]{1,80})\]/g,(all,inner)=>{const codes=inner.match(/\bP\d+\b/gi);if(!codes)return all;const parts=codes.map(c=>map.get(c.toUpperCase())).filter(Boolean);return parts.length?"("+parts.join("; ")+")":all;});
+  copyText(body+"\n\nReferences\n\n"+l.map(p=>apa(p)).join("\n\n"),$("#exportStatus"),"Copied the review with author–year citations and the verified reference list.");
+});
+
+/* ---------- Boot ---------- */
+probeApi();
+$("#searchForm").requestSubmit();
+</script>
+</body>
+</html>
